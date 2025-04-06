@@ -1,6 +1,7 @@
 
 from django.shortcuts import render, redirect
 from . import forms
+from . import models
 from .models import Details
 from .models import Compose
 import imaplib,email
@@ -16,7 +17,7 @@ from email.mime.base import MIMEBase
 from email import encoders
 from django.http import JsonResponse
 import re
-
+from django.conf import settings
 file = "good"
 i="0"
 passwrd = ""
@@ -25,10 +26,11 @@ item =""
 subject = ""
 body = ""
 s = smtplib.SMTP('smtp.gmail.com', 587)
+s.ehlo()
 s.starttls()
 imap_url = 'imap.gmail.com'
 conn = imaplib.IMAP4_SSL(imap_url)
-attachment_dir = 'C:/Users/Chacko/Desktop/'
+attachment_dir = os.path.join(settings.BASE_DIR, "homepage", "attachments")
 
 def texttospeech(text, filename):
     filename = filename + '.mp3'
@@ -103,12 +105,17 @@ def login_view(request):
             texttospeech("Enter your Email", file + i)
             i = i + str(1)
             addr = speechtotext(10)
-            
+            addr = addr.replace(' ', '')
+            addr = addr.replace('attherate', '@')
             if addr != 'N':
                 texttospeech("You meant " + addr + " say yes to confirm or no to enter again", file + i)
                 i = i + str(1)
                 say = speechtotext(3)
-                if say == 'yes' or say == 'Yes':
+                # if say == 'yes' or say == 'Yes':
+                if say not in('no', 'NO', 'No', 'nO'):
+                    say = speechtotext(3)
+                    print("User confirmation captured as:", say)
+
                     flag = False
             else:
                 texttospeech("could not understand what you meant:", file + i)
@@ -130,7 +137,10 @@ def login_view(request):
                 texttospeech("You meant " + passwrd + " say yes to confirm or no to enter again", file + i)
                 i = i + str(1)
                 say = speechtotext(3)
-                if say == 'yes' or say == 'Yes':
+                if say not in('no', 'NO', 'No', 'nO'):
+                    say = speechtotext(3)
+                    print("User confirmation captured as:", say)
+
                     flag = False
             else:
                 texttospeech("could not understand what you meant:", file + i)
@@ -142,8 +152,8 @@ def login_view(request):
         print(passwrd)
 
         imap_url = 'imap.gmail.com'
-        #passwrd = ''
-        #addr = ''
+        passwrd = ''
+        addr = ''
         conn = imaplib.IMAP4_SSL(imap_url)
         try:
             conn.login(addr, passwrd)
@@ -542,3 +552,183 @@ def inbox_view(request):
     elif request.method == 'GET':
         return render(request, 'homepage/inbox.html')
 
+
+
+# import os
+# import imaplib
+# import email
+# import smtplib
+# import mimetypes
+# import speech_recognition as sr
+# import pyttsx3
+
+# from django.core.files.storage import FileSystemStorage
+# from django.http import HttpResponse
+# from django.shortcuts import render, redirect
+# from email.mime.multipart import MIMEMultipart
+# from email.mime.text import MIMEText
+# from email.mime.base import MIMEBase
+# from email import encoders
+
+# recognizer = sr.Recognizer()
+# tts_engine = pyttsx3.init()
+
+# def speak(text):
+#     tts_engine.say(text)
+#     tts_engine.runAndWait()
+
+# def recognize_speech_from_mic():
+#     with sr.Microphone() as source:
+#         speak("Listening...")
+#         audio = recognizer.listen(source)
+
+#     try:
+#         command = recognizer.recognize_google(audio)
+#         return command
+#     except sr.UnknownValueError:
+#         speak("Sorry, I did not understand.")
+#         return ""
+#     except sr.RequestError:
+#         speak("Sorry, there was a problem with the speech recognition service.")
+#         return ""
+
+# def login(request):
+#     if request.method == 'POST':
+#         email_input = request.POST.get('email')
+#         password_input = request.POST.get('password')
+#         request.session['email'] = email_input
+#         request.session['password'] = password_input
+#         return redirect('options')
+#     return render(request, 'login.html')
+
+# def options(request):
+#     speak("Say read inbox, compose email, or manage inbox.")
+#     command = recognize_speech_from_mic().lower()
+
+#     if 'read' in command:
+#         return redirect('read_inbox')
+#     elif 'compose' in command:
+#         return redirect('compose_email')
+#     elif 'manage' in command:
+#         return redirect('manage_inbox')
+#     else:
+#         speak("Command not recognized.")
+#         return render(request, 'options.html')
+
+# def compose_email(request):
+#     if request.method == 'POST':
+#         to_address = request.POST.get('to')
+#         subject = request.POST.get('subject')
+#         body = request.POST.get('body')
+#         attachment = request.FILES.get('attachment')
+#         email_user = request.session.get('email')
+#         email_pass = request.session.get('password')
+
+#         message = MIMEMultipart()
+#         message['From'] = email_user
+#         message['To'] = to_address
+#         message['Subject'] = subject
+#         message.attach(MIMEText(body, 'plain'))
+
+#         if attachment:
+#             fs = FileSystemStorage()
+#             filename = fs.save(attachment.name, attachment)
+#             file_path = fs.path(filename)
+
+#             with open(file_path, 'rb') as attachment_file:
+#                 mime_type, _ = mimetypes.guess_type(file_path)
+#                 maintype, subtype = mime_type.split('/')
+#                 part = MIMEBase(maintype, subtype)
+#                 part.set_payload(attachment_file.read())
+#                 encoders.encode_base64(part)
+#                 part.add_header('Content-Disposition', 'attachment', filename=os.path.basename(file_path))
+#                 message.attach(part)
+
+#         try:
+#             with smtplib.SMTP('smtp.gmail.com', 587, timeout=10) as s:
+#                 s.starttls()
+#                 s.login(email_user, email_pass)
+#                 s.send_message(message)
+#                 speak("Email sent successfully.")
+#         except Exception as e:
+#             speak(f"Failed to send email. {str(e)}")
+
+#         return redirect('options')
+
+#     return render(request, 'compose.html')
+
+# def read_inbox(request):
+#     email_user = request.session.get('email')
+#     email_pass = request.session.get('password')
+#     mail = imaplib.IMAP4_SSL("imap.gmail.com")
+#     mail.login(email_user, email_pass)
+#     mail.select("inbox")
+#     result, data = mail.search(None, "ALL")
+#     mail_ids = data[0].split()
+#     latest_email_ids = mail_ids[-5:]
+#     emails = []
+
+#     for num in reversed(latest_email_ids):
+#         result, msg_data = mail.fetch(num, "(RFC822)")
+#         raw_email = msg_data[0][1]
+#         msg = email.message_from_bytes(raw_email)
+#         subject = msg["subject"]
+#         from_ = msg["from"]
+#         body = ""
+
+#         if msg.is_multipart():
+#             for part in msg.walk():
+#                 content_type = part.get_content_type()
+#                 if content_type == "text/plain":
+#                     body = part.get_payload(decode=True).decode()
+#                     break
+#         else:
+#             body = msg.get_payload(decode=True).decode()
+
+#         emails.append({"from": from_, "subject": subject, "body": body})
+#         speak(f"Email from {from_}, subject: {subject}")
+
+#     return render(request, 'inbox.html', {"emails": emails})
+
+# def manage_inbox(request):
+#     email_user = request.session.get('email')
+#     email_pass = request.session.get('password')
+#     mail = imaplib.IMAP4_SSL("imap.gmail.com")
+#     mail.login(email_user, email_pass)
+#     mail.select("inbox")
+#     result, data = mail.search(None, "ALL")
+#     mail_ids = data[0].split()
+#     latest_email_ids = mail_ids[-5:]
+#     emails = []
+
+#     for num in reversed(latest_email_ids):
+#         result, msg_data = mail.fetch(num, "(RFC822)")
+#         raw_email = msg_data[0][1]
+#         msg = email.message_from_bytes(raw_email)
+#         subject = msg["subject"]
+#         from_ = msg["from"]
+#         body = ""
+
+#         if msg.is_multipart():
+#             for part in msg.walk():
+#                 content_type = part.get_content_type()
+#                 if content_type == "text/plain":
+#                     body = part.get_payload(decode=True).decode()
+#                     break
+#         else:
+#             body = msg.get_payload(decode=True).decode()
+
+#         emails.append({"id": num.decode(), "from": from_, "subject": subject, "body": body})
+
+#     return render(request, 'manage_inbox.html', {"emails": emails})
+
+# def delete_email(request, email_id):
+#     email_user = request.session.get('email')
+#     email_pass = request.session.get('password')
+#     mail = imaplib.IMAP4_SSL("imap.gmail.com")
+#     mail.login(email_user, email_pass)
+#     mail.select("inbox")
+#     mail.store(email_id, '+FLAGS', '\\Deleted')
+#     mail.expunge()
+#     speak("Email deleted.")
+#     return redirect('manage_inbox')
