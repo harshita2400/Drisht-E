@@ -97,7 +97,7 @@ def login_view(request):
 
     if request.method == 'POST':
         text1 = "Welcome to Drisht-E, your very own Voice based Email service. Login with your email account in order to continue. "
-        texttospeech(text1, file + i)
+        # texttospeech(text1, file + i)
         i = i + str(1)
 
         flag = True
@@ -105,18 +105,20 @@ def login_view(request):
             texttospeech("Enter your Email", file + i)
             i = i + str(1)
             addr = speechtotext(10)
-            addr = addr.replace(' ', '')
-            addr = addr.replace('attherate', '@')
+            # addr = addr.replace(' ', '')
+            # addr = addr.replace('attherate', '@')
             if addr != 'N':
                 texttospeech("You meant " + addr + " say yes to confirm or no to enter again", file + i)
                 i = i + str(1)
-                say = speechtotext(3)
+                say="yes"
+                say = speechtotext(5)
+                say=say.replace(' ','')
+                flag = False
                 # if say == 'yes' or say == 'Yes':
-                if say not in('no', 'NO', 'No', 'nO'):
-                    say = speechtotext(3)
-                    print("User confirmation captured as:", say)
-
-                    flag = False
+                if("no" in say.lower()):
+                    print(say.lower())
+                    print("User confirmation captured as:", addr)
+                    flag = True
             else:
                 texttospeech("could not understand what you meant:", file + i)
                 i = i + str(1)
@@ -131,17 +133,20 @@ def login_view(request):
         while (flag):
             texttospeech("Enter your password", file + i)
             i = i + str(1)
-            passwrd = speechtotext(10)
+            passwrd = speechtotext(12)
             
             if addr != 'N':
                 texttospeech("You meant " + passwrd + " say yes to confirm or no to enter again", file + i)
                 i = i + str(1)
+                say="yes"
+                flag = False
                 say = speechtotext(3)
-                if say not in('no', 'NO', 'No', 'nO'):
+                say = say.replace(" ", "")
+                if(say.lower() == 'no'):
                     say = speechtotext(3)
                     print("User confirmation captured as:", say)
-
-                    flag = False
+                    flag = True
+                
             else:
                 texttospeech("could not understand what you meant:", file + i)
                 i = i + str(1)
@@ -152,8 +157,8 @@ def login_view(request):
         print(passwrd)
 
         imap_url = 'imap.gmail.com'
-        passwrd = ''
-        addr = ''
+        # passwrd = ''
+        # addr = ''
         conn = imaplib.IMAP4_SSL(imap_url)
         try:
             conn.login(addr, passwrd)
@@ -181,6 +186,7 @@ def options_view(request):
         while(flag):
             texttospeech("To compose an email say compose. To open Inbox folder say Inbox. To Logout say Logout. Do you want me to repeat?", file + i)
             i = i + str(1)
+            say=""
             say = speechtotext(3)
             if say == 'No' or say == 'no':
                 flag = False
@@ -229,10 +235,13 @@ def compose_view(request):
                     
                     texttospeech("You meant " + to + " say yes to confirm or no to enter again", file + i)
                     i = i + str(1)
+                    say="yes"
+                    flag = False
+                    toaddr.append(to)
                     say = speechtotext(5)
-                    if say == 'yes' or say == 'Yes':
-                        toaddr.append(to)
-                        flag = False
+                    if say.lower()=="no":
+                        toaddr.remove(to)
+                        flag = True
                 else:
                     texttospeech("could not understand what you meant", file + i)
                     i = i + str(1)
@@ -409,17 +418,17 @@ def read_mails(mail_list,folder):
     while flag :
         n = 0
         flag1 = True
-        while flag1:
-            texttospeech("Enter the email number of mail you want to read.",file + i)
-            i = i + str(1)
-            n = speechtotext(2)
-            print(n)
-            texttospeech("You meant " + str(n) + ". Say yes or no.", file + i)
-            i = i + str(1)
-            say = speechtotext(2)
-            say = say.lower()
-            if say == 'yes':
-                flag1 = False
+        # while flag1:
+        #     texttospeech("Enter the email number of mail you want to read.",file + i)
+        #     i = i + str(1)
+        #     n = speechtotext(5)
+        #     print(n)
+        #     texttospeech("You meant " + str(n) + ". Say yes or no.", file + i)
+        #     i = i + str(1)
+        #     say = speechtotext(2)
+        #     say = say.lower()
+        #     if say == 'yes':
+        #         flag1 = False
         n = int(n)
         msgid = to_read_list[n - 1]
         print("message id is =", msgid)
